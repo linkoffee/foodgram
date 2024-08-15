@@ -2,7 +2,7 @@ from django.http import HttpResponse
 from datetime import date
 
 
-def download_shopping_cart(data, user):
+def download_txt(data, user):
     """Функция для загрузки списка покупок в txt формате."""
 
     file_name = f'{user}`s_shopping_cart.txt'
