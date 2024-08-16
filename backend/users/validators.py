@@ -10,7 +10,7 @@ def validate_username(value):
     if value.lower() in forbidden_values:
         raise ValidationError(f'Недопустимое имя пользователя: {value}')
 
-    forbidden_chars = re.sub(r'^[\w.@+-]+\z', '', value)
+    forbidden_chars = re.sub(r'^[\w.@+-]+\Z', '', value)
     if forbidden_chars:
         raise ValidationError(
             'Недопустимые символы в имени пользователя:'
