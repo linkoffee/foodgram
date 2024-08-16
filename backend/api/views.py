@@ -43,6 +43,7 @@ class UserViewSet(viewsets.ModelViewSet):
     """Вьюсет для юзера."""
 
     queryset = User.objects.all()
+    permission_classes = (IsAuthenticated,)
     pagination_class = LimitPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username',)
@@ -51,6 +52,11 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return UserCreateSerializer
         return UserSerializer
+
+    def get_permissions(self):
+        if self.action == 'create':
+            return []
+        return [permission() for permission in self.permission_classes]
 
     @action(
         methods=('GET',),
@@ -71,7 +77,7 @@ class UserViewSet(viewsets.ModelViewSet):
         permission_classes=(IsAuthenticated,),
         detail=False
     )
-    def change_password(self, request):
+    def set_password(self, request):
         """Меняет пароль текущего пользователя по запросу."""
 
         user = self.request.user
@@ -81,15 +87,16 @@ class UserViewSet(viewsets.ModelViewSet):
             context={'request': request}
         )
         serializer.is_valid(raise_exception=True)
-        user.change_password(serializer.data['password'])
+        user.set_password(serializer.data['new_password'])
         user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         methods=('PUT', 'DELETE'),
+        url_path='me/avatar',
         detail=False
     )
-    def change_avatar(self, request):
+    def avatar(self, request):
         """Устанавливает, обновляет, либо удаляет аватар пользователя."""
 
         user = self.request.user
@@ -193,7 +200,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=(IsAuthenticated,),
         detail=True
     )
-    def change_shopping_cart(self, request, pk):
+    def shopping_cart(self, request, pk):
         """Добавление или удаление из списка покупок, исходя из запроса."""
 
         if request.method == 'POST':
@@ -206,7 +213,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=(IsAuthenticated,),
         detail=True,
     )
-    def change_favorite(self, request, pk):
+    def favorite(self, request, pk):
         """Добавление или удаление из избранного, исходя из запроса."""
 
         if request.method == 'POST':
