@@ -20,7 +20,7 @@ from recipes.models import (
     ShoppingCart,
     Favorite,
 )
-from recipes.utils import download_txt
+from recipes.utils import download_txt, generate_link
 from users.models import User, Subscription
 from .permissions import IsAdminOrAuthor
 from .pagination import LimitPagination
@@ -36,6 +36,7 @@ from .serializers import (
     RecipeReceiveSerializer,
     FavoriteSerializer,
     ShoppingCartSerializer,
+    UserAvatarSerializer,
 )
 
 
@@ -54,8 +55,8 @@ class UserViewSet(viewsets.ModelViewSet):
         return UserSerializer
 
     def get_permissions(self):
-        if self.action == 'create':
-            return []
+        if self.action in ['create', 'list', 'retrieve']:
+            return [AllowAny()]
         return [permission() for permission in self.permission_classes]
 
     @action(
@@ -108,7 +109,7 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         if request.method == 'PUT' and request.data:
-            serializer = UserSerializer(
+            serializer = UserAvatarSerializer(
                 user,
                 data=request.data,
                 partial=True
@@ -139,7 +140,7 @@ class SubscribeToViewSet(views.APIView):
     def post(self, request, pk):
         author = get_object_or_404(User, pk=pk)
         user = self.request.user
-        data = {'subscribed_to': author.id, 'user': user.id}
+        data = {'author': author.id, 'user': user.id}
         serializer = SubscribeToSerializer(
             data=data,
             context={'request': request}
@@ -151,7 +152,7 @@ class SubscribeToViewSet(views.APIView):
 
     def delete(self, request, pk):
         author = get_object_or_404(User, pk=pk)
-        user = self.request.user
+        user = request.user
         subscription = get_object_or_404(
             Subscription,
             user=user,
@@ -167,6 +168,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
+    pagination_class = None
     permission_classes = (AllowAny,)
     filter_backends = (IngredientFilter,)
     search_fields = ('^name',)
@@ -178,6 +180,7 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     permission_classes = (AllowAny,)
+    pagination_class = None
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -196,6 +199,19 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return RecipeReceiveSerializer
 
     @action(
+        methods=('GET',),
+        detail=True,
+        url_path='get-link',
+    )
+    def get_short_link(self, request, pk):
+        """Генерация короткой ссылки на рецепт."""
+
+        recipe = self.get_object()
+        short_link = generate_link(recipe)
+
+        return Response({'short-link': short_link}, status=status.HTTP_200_OK)
+
+    @action(
         methods=('POST', 'DELETE'),
         permission_classes=(IsAuthenticated,),
         detail=True
@@ -205,8 +221,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         if request.method == 'POST':
             return self.add_recipe(request, pk, ShoppingCartSerializer)
-        else:
-            return self.delete_recipe(request, pk, ShoppingCart)
+        return self.delete_recipe(request, pk, ShoppingCart)
 
     @action(
         methods=('POST', 'DELETE'),
@@ -218,8 +233,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         if request.method == 'POST':
             return self.add_recipe(request, pk, FavoriteSerializer)
-        else:
-            return self.delete_recipe(request, pk, Favorite)
+        return self.delete_recipe(request, pk, Favorite)
 
     @action(
         methods=('GET',),
@@ -256,7 +270,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def delete_recipe(self, request, pk, model):
         """Удаление рецепта из избранного или списка покупок."""
 
-        user = self.request.user
+        user = request.user
         obj = get_object_or_404(model, recipe_id=pk, user=user)
         obj.delete()
 
