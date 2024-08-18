@@ -153,13 +153,15 @@ class SubscribeToViewSet(views.APIView):
     def delete(self, request, pk):
         author = get_object_or_404(User, pk=pk)
         user = request.user
-        subscription = get_object_or_404(
-            Subscription,
-            user=user,
-            author=author
-        )
-        subscription.delete()
+        try:
+            subscription = Subscription.objects.get(user=user, author=author)
+        except Subscription.DoesNotExist:
+            return Response(
+                {'errors': 'Подписка не найдена.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
+        subscription.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -243,20 +245,23 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def download_shopping_cart(self, request):
         """Загрузка списка покупок файлом."""
 
+        recipes = Recipe.objects.filter(shopping_carts__user=request.user)
         ingredients = IngredientInRecipe.objects.filter(
-            recipe__shoppingcart__user=request.user
+            recipe__in=recipes
         ).values(
             'ingredient__name', 'ingredient__measurement_unit'
         ).annotate(total_amount=Sum('amount'))
 
-        return download_txt(ingredients, user=self.request.user.username)
+        return download_txt(ingredients, user=request.user.username)
 
     def add_recipe(self, request, pk, serializer_class):
         """Добавление рецепта в избранное или в список покупок."""
 
+        recipe = get_object_or_404(Recipe, pk=pk)
+
         data = {
             'user': request.user.id,
-            'recipe': pk
+            'recipe': recipe.id
         }
         serializer = serializer_class(
             data=data,
@@ -270,8 +275,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def delete_recipe(self, request, pk, model):
         """Удаление рецепта из избранного или списка покупок."""
 
+        recipe = get_object_or_404(Recipe, pk=pk)
         user = request.user
-        obj = get_object_or_404(model, recipe_id=pk, user=user)
-        obj.delete()
 
+        try:
+            obj = model.objects.get(recipe_id=recipe.id, user=user)
+        except model.DoesNotExist:
+            return Response(
+                {'errors': 'Рецепт не найден в списке.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
