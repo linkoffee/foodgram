@@ -35,6 +35,7 @@ class RecipeFilter(FilterSet):
     tags = filters.ModelMultipleChoiceFilter(
         queryset=Tag.objects.all(),
         field_name='tags__slug',
+        to_field_name='slug'
     )
     is_in_shopping_cart = filters.NumberFilter(
         method='is_in_shopping_cart_filter'
