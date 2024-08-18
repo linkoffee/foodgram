@@ -82,10 +82,8 @@ class Recipe(models.Model):
         verbose_name='Описание',
     )
     ingredients = models.ManyToManyField(
-        'IngredientInRecipe',
-        db_index=True,
-        related_name='recipes',
-        verbose_name='Ингридиенты',
+        Ingredient,
+        verbose_name='Ингредиенты',
     )
     tags = models.ManyToManyField(
         Tag,
