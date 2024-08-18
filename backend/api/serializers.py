@@ -88,10 +88,16 @@ class SubscriptionReceiveSerializer(UserSerializer):
 
     class Meta(UserSerializer.Meta):
         fields = (
-            *UserSerializer.Meta.fields,
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'is_subscribed',
             'recipes',
             'recipes_count',
-        )  # type: ignore
+            'avatar',
+        )
 
     def get_recipes(self, obj):
         """Получить список рецептов."""
@@ -117,21 +123,19 @@ class SubscribeToSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscription
         fields = ('user', 'author')
-        validators = (
+        validators = [
             UniqueTogetherValidator(
                 queryset=Subscription.objects.all(),
                 fields=('user', 'author'),
                 message='Вы уже подписаны на этого пользователя'
             )
-        )
+        ]
 
     def to_representation(self, instance):
-        request = self.context.get('request')
-        context = {'request': request}
         user = instance.author
         serializer = SubscriptionReceiveSerializer(
             user,
-            context
+            context=self.context
         )
         return serializer.data
 
@@ -161,9 +165,8 @@ class IngredientSerializer(serializers.ModelSerializer):
 class IngredientInRecipeSerializer(serializers.ModelSerializer):
     """Сериализатор для ингредиентов в рецепте."""
 
-    id = serializers.PrimaryKeyRelatedField(
-        queryset=Ingredient.objects.all(),
-        source='ingredient'
+    id = serializers.ReadOnlyField(
+        source='ingredient.id'
     )
     name = serializers.ReadOnlyField(
         source='ingredient.name'
@@ -175,6 +178,26 @@ class IngredientInRecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = IngredientInRecipe
         fields = ('id', 'name', 'measurement_unit', 'amount')
+
+
+class AddIngredientInRecipeSerializer(serializers.ModelSerializer):
+    """Сериализатор для добавления ингредиентов в рецепт."""
+
+    id = serializers.PrimaryKeyRelatedField(
+        queryset=Ingredient.objects.all()
+    )
+    amount = serializers.IntegerField()
+
+    class Meta:
+        model = IngredientInRecipe
+        fields = ('id', 'amount')
+
+    def validate(self, data):
+        if data['amount'] <= 0:
+            raise serializers.ValidationError(
+                'Кол-во ингредиентов не может быть меньше 1'
+            )
+        return data
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -190,7 +213,7 @@ class RecipeShortSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
-        fields = ('id', 'name', 'cooking_time')
+        fields = ('id', 'name', 'image', 'cooking_time')
 
 
 class RecipeReceiveSerializer(serializers.ModelSerializer):
@@ -243,7 +266,7 @@ class RecipeReceiveSerializer(serializers.ModelSerializer):
 class RecipeCreateSerializer(serializers.ModelSerializer):
     """Сериализатор для создания рецептов."""
 
-    ingredients = IngredientInRecipeSerializer(many=True)
+    ingredients = AddIngredientInRecipeSerializer(many=True)
     tags = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(),
         many=True,
@@ -261,6 +284,11 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             'cooking_time',
         )
 
+    def to_representation(self, instance):
+        request = self.context.get('request')
+        context = {'request': request}
+        return RecipeReceiveSerializer(instance, context=context).data
+
     @transaction.atomic
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
@@ -268,41 +296,64 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         recipe = Recipe.objects.create(
             author=self.context['request'].user, **validated_data
         )
-        self.ingredient_bind(ingredients=ingredients, recipe=recipe)
+        self.add_ingredient(ingredients=ingredients, recipe=recipe)
         recipe.tags.set(tags)
         return recipe
 
     @transaction.atomic
     def update(self, instance, validated_data):
-        ingredients = validated_data.pop('ingredients')
-        tags = validated_data.pop('tags')
-        instance.ingredients.clear()
-        self.ingredient_bind(ingredients=ingredients, instance=instance)
-        instance.tags.set(tags)
+        ingredients = validated_data.pop('ingredients', None)
+        tags = validated_data.pop('tags', None)
+
+        if ingredients is not None:
+            instance.ingredients.clear()
+            self.add_ingredient(ingredients=ingredients, recipe=instance)
+
+        if tags is not None:
+            instance.tags.set(tags)
+
         return super().update(instance, validated_data)
 
     def validate(self, data):
-        ingredients = data.get('ingredients')
-        tags = data.get('tags')
+        ingredients = data.get('ingredients', [])
+        tags = data.get('tags', [])
+
+        if 'ingredients' not in data or len(ingredients) == 0:
+            raise serializers.ValidationError(
+                {'ingredients': 'Добавьте ингредиенты.'}
+            )
+
+        if 'tags' not in data or len(tags) == 0:
+            raise serializers.ValidationError(
+                {'tags': 'Добавьте теги.'}
+            )
+
         ingredient_ids = [ingredient['id'] for ingredient in ingredients]
+        if len(ingredient_ids) != len(set(ingredient_ids)):
+            raise serializers.ValidationError({
+                'ingredients': 'ID ингредиентов должны быть уникальными.'
+            })
 
-        if (
-            not tags and not ingredients and len(set(tags)) != len(tags)
-            and len(ingredient_ids) != len(set(ingredient_ids))
-        ):
-            raise serializers.ValidationError('Обязательное поле.')
+        if len(tags) != len(set(tags)):
+            raise serializers.ValidationError({
+                'tags': 'Теги должны быть уникальными.'
+            })
 
-    def ingredient_bind(self, ingredients, recipe):
-        """Метод для привязки ингредиента к рецепту."""
+        if data.get('image') is None:
+            raise serializers.ValidationError(
+                {'image': 'Добавьте изображение.'}
+            )
 
-        IngredientInRecipe.objects.filter(recipe=recipe).delete()
+        return data
 
+    def add_ingredient(self, ingredients, recipe):
         IngredientInRecipe.objects.bulk_create([
             IngredientInRecipe(
                 recipe=recipe,
                 ingredient=ingredient['id'],
-                amount=ingredient['amount'],
-            ) for ingredient in ingredients
+                amount=ingredient['amount']
+            )
+            for ingredient in ingredients
         ])
 
 
@@ -312,12 +363,12 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShoppingCart
         fields = ('user', 'recipe')
-        validators = (
+        validators = [
             UniqueTogetherValidator(
                 queryset=ShoppingCart.objects.all(),
                 fields=('user', 'recipe')
             )
-        )
+        ]
 
     def to_representation(self, instance):
         return RecipeShortSerializer(
@@ -326,28 +377,18 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         ).data
 
 
-# class ShoppingCartDownloadSerializer(serializers.ModelSerializer):
-#     """Сериализатор для скачивания списка покупок."""
-
-#     shopping_cart = serializers.FileField()
-
-#     class Meta:
-#         model = ShoppingCart
-#         fields = ('user', 'recipe', 'shopping_cart')
-
-
 class FavoriteSerializer(serializers.ModelSerializer):
     """Сериализатор для избранного."""
 
     class Meta:
         model = Favorite
         fields = ('user', 'recipe')
-        validators = (
+        validators = [
             UniqueTogetherValidator(
                 queryset=Favorite.objects.all(),
                 fields=('user', 'recipe'),
             )
-        )
+        ]
 
     def to_representation(self, instance):
         return RecipeShortSerializer(
