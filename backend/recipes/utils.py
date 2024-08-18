@@ -15,16 +15,18 @@ def download_txt(data, user):
     current_date = date.today().strftime('%d-%m-%Y')
     ingredients = {}
 
-    for recipe in data:
-        for ingredient in recipe:
-            name = ingredient.ingredient.name
-            if name not in ingredients:
-                ingredients[name] = {
-                    'amount': ingredient.amount,
-                    'measurement_unit': ingredient.ingredient.measurement_unit
-                }
-            else:
-                ingredients[name]['amount'] += ingredient.amount
+    for item in data:
+        name = item['ingredient__name']
+        amount = item['total_amount']
+        measurement_unit = item['ingredient__measurement_unit']
+
+        if name not in ingredients:
+            ingredients[name] = {
+                'amount': amount,
+                'measurement_unit': measurement_unit
+            }
+        else:
+            ingredients[name]['amount'] += amount
 
     header = f'Список покупок {user}\nДата: {current_date}'
     file_data = [
