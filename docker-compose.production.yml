@@ -22,13 +22,13 @@ services:
     depends_on:
       - db
   frontend:
-    build: linkoffee/foodgram_frontend
+    image: linkoffee/foodgram_frontend
     command: cp -r /app/build/. /frontend_static/
     volumes:
       - static:/frontend_static/
       - docs:/app/docs/
   nginx:
-    build: linkoffee/foodgram_gateway
+    image: linkoffee/foodgram_gateway
     ports:
       - "80:80"
     volumes:
