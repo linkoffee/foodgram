@@ -1,0 +1,21 @@
+# .dockerignore
+
+# environment
+.env.example
+venv
+env
+.env
+.venv
+
+# git
+.git
+
+# cache
+*.bak
+.vscode
+.mypy_cache
+__pycache__
+
+# db
+db.sqlite3
+db_copy.sqlite3
