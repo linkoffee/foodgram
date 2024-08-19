@@ -1,0 +1,41 @@
+version: '3.3'
+
+volumes:
+  pg_data:
+  docs:
+  static:
+  media:
+
+services:
+  db:
+    image: postgres:13.10
+    env_file: .env
+    volumes:
+      - pg_data:/var/lib/postgresql/data/
+  backend:
+    image: linkoffee/foodgram_backend
+    env_file: .env
+    volumes:
+      - static:/backend_static/
+      - media:/app/media/recipes/images/
+      - docs:/app/docs/
+    depends_on:
+      - db
+  frontend:
+    build: linkoffee/foodgram_frontend
+    command: cp -r /app/build/. /frontend_static/
+    volumes:
+      - static:/frontend_static/
+      - docs:/app/docs/
+  nginx:
+    build: linkoffee/foodgram_gateway
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend/build:/usr/share/nginx/html/
+      - static:/staticfiles/
+      - media:/app/media/recipes/images/
+      - docs:/app/docs/
+    depends_on:
+      - backend
+      - frontend
