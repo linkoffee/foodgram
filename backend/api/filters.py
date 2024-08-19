@@ -10,24 +10,6 @@ class IngredientFilter(SearchFilter):
 
     search_param = 'name'
 
-    def filter_queryset(self, request, queryset, view):
-        search_term = request.query_params.get(self.search_param, '').strip()
-
-        if not search_term:
-            return queryset
-
-        queryset = queryset.filter(name__icontains=search_term)
-
-        queryset = queryset.annotate(
-            starts_with=Case(
-                When(name__istartswith=search_term, then=Value(True)),
-                default=Value(False),
-                output_field=BooleanField(),
-            )
-        ).order_by('-starts_with', 'name')
-
-        return queryset
-
 
 class RecipeFilter(FilterSet):
     """Фильтрация для рецептов."""
