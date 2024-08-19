@@ -25,9 +25,13 @@ router_v1.register(
 )
 
 urlpatterns = [
+    path(
+        'users/subscriptions/',
+        SubscriptionViewSet.as_view(),
+        name='subscriptions'
+    ),
     path('', include(router_v1.urls)),
     path('auth/', include('djoser.urls')),
     re_path(r'^auth/', include('djoser.urls.authtoken')),
-    path('users/subscriptions/', SubscriptionViewSet.as_view()),
     path('users/<int:pk>/subscribe/', SubscribeToViewSet.as_view())
 ]
