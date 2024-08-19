@@ -2,7 +2,13 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum
 from djoser.serializers import SetPasswordSerializer
-from rest_framework import filters, viewsets, views, permissions, status
+from rest_framework import (
+    filters,
+    viewsets,
+    views,
+    permissions,
+    status,
+)
 from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import (
