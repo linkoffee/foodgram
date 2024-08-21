@@ -1,4 +1,6 @@
+from pyexpat.errors import messages
 from django.contrib import admin
+from django.forms import ValidationError
 
 from .models import Ingredient, Tag, Recipe, ShoppingCart, Favorite
 
@@ -45,6 +47,7 @@ class RecipeAdmin(admin.ModelAdmin):
     list_display = (
         'author',
         'name',
+        'favorite_additions'
     )
     list_editable = (
         'name',
@@ -56,6 +59,21 @@ class RecipeAdmin(admin.ModelAdmin):
     list_filter = (
         'tags',
     )
+
+    @admin.display(description='Добавлений в избранное')
+    def favorite_additions(self, obj):
+        """Считает кол-во добавлений рецепта в избранное."""
+
+        return obj.favorites.all().count()
+
+    def save_model(self, request, obj, form, change):
+        """Проверка наличия ингредиентов перед сохранением рецепта."""
+
+        try:
+            obj.clean()
+            super().save_model(request, obj, form, change)
+        except ValidationError as e:
+            self.message_user(request, e.message, level=messages.ERROR)
 
 
 @admin.register(ShoppingCart)
