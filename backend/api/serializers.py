@@ -304,6 +304,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         ingredients = validated_data.pop('ingredients', None)
         tags = validated_data.pop('tags', None)
+        image = validated_data.pop('image', None)
 
         if ingredients is not None:
             instance.ingredients.clear()
@@ -312,11 +313,45 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         if tags is not None:
             instance.tags.set(tags)
 
+        if image is not None:
+            instance.image = image
+        instance.save()
+
         return super().update(instance, validated_data)
+
+    @transaction.atomic
+    def add_ingredient(self, ingredients, recipe):
+        new_ingredient_ids = {ingredient['id'] for ingredient in ingredients}
+        existing_ingredient_ids = set(
+            IngredientInRecipe.objects.filter(
+                recipe=recipe
+            ).values_list('ingredient_id', flat=True)
+        )
+
+        ids_to_delete = existing_ingredient_ids - new_ingredient_ids
+        if ids_to_delete:
+            IngredientInRecipe.objects.filter(
+                ingredient_id__in=ids_to_delete,
+                recipe=recipe
+            ).delete()
+
+        new_ingredients = [
+            IngredientInRecipe(
+                recipe=recipe,
+                ingredient=ingredient['id'],
+                amount=ingredient['amount'],
+            )
+            for ingredient in ingredients
+        ]
+
+        IngredientInRecipe.objects.bulk_create(
+            new_ingredients, ignore_conflicts=True
+        )
 
     def validate(self, data):
         ingredients = data.get('ingredients', [])
         tags = data.get('tags', [])
+        request = self.context.get('request')
 
         if 'ingredients' not in data or len(ingredients) == 0:
             raise serializers.ValidationError(
@@ -339,22 +374,12 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
                 'tags': 'Теги должны быть уникальными.'
             })
 
-        if data.get('image') is None:
+        if request.method == 'POST' and data.get('image') is None:
             raise serializers.ValidationError(
                 {'image': 'Добавьте изображение.'}
             )
 
         return data
-
-    def add_ingredient(self, ingredients, recipe):
-        IngredientInRecipe.objects.bulk_create([
-            IngredientInRecipe(
-                recipe=recipe,
-                ingredient=ingredient['id'],
-                amount=ingredient['amount']
-            )
-            for ingredient in ingredients
-        ])
 
 
 class ShoppingCartSerializer(serializers.ModelSerializer):
