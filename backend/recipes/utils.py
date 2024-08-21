@@ -1,5 +1,3 @@
-import base64
-import os
 from django.http import HttpResponse
 from datetime import date
 
@@ -40,13 +38,3 @@ def download_txt(data, user):
     response['Content-Disposition'] = f'attachment; filename="{file_name}"'
 
     return response
-
-
-def generate_link(recipe):
-    """Функция для генерации уникальной короткой ссылки на рецепт."""
-
-    recipe_id_str = str(recipe.id).encode('utf-8')
-    code = base64.urlsafe_b64encode(recipe_id_str).decode('utf-8').rstrip('=')
-    short_link = f'{os.getenv("SITE_URL")}/s/{code}'
-
-    return short_link
