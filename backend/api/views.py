@@ -26,7 +26,7 @@ from recipes.models import (
     ShoppingCart,
     Favorite,
 )
-from recipes.utils import download_txt, generate_link
+from recipes.utils import download_txt
 from users.models import User, Subscription
 from .permissions import IsAdminOrAuthor
 from .pagination import LimitPagination
@@ -214,10 +214,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_short_link(self, request, pk):
         """Генерация короткой ссылки на рецепт."""
 
-        recipe = self.get_object()
-        short_link = generate_link(recipe)
-
-        return Response({'short-link': short_link}, status=status.HTTP_200_OK)
+        get_object_or_404(Recipe, id=pk)
+        link = request.build_absolute_uri(f'/recipes/{pk}/')
+        return Response({'short-link': link}, status=status.HTTP_200_OK)
 
     @action(
         methods=('POST', 'DELETE'),
