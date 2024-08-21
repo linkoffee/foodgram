@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.forms import ValidationError
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from .models import User, Subscription
 
@@ -6,7 +8,7 @@ admin.site.empty_value_display = 'Здесь пока ничего нет:('
 
 
 @admin.register(User)
-class UserAdmin(admin.ModelAdmin):
+class UserAdmin(BaseUserAdmin):
     """Админ панель для пользователя."""
 
     list_display = (
@@ -45,3 +47,10 @@ class SubscriptionAdmin(admin.ModelAdmin):
         'user',
         'author',
     )
+
+    def save_model(self, request, obj, form, change):
+        """Проверка, что пользователь не может подписаться на себя."""
+
+        if obj.user == obj.author:
+            raise ValidationError('Вы не можете подписаться на самого себя.')
+        super().save_model(request, obj, form, change)
