@@ -1,10 +1,23 @@
-from pyexpat.errors import messages
-from django.contrib import admin
-from django.forms import ValidationError
+from django.contrib import admin, messages
+from django.http import HttpResponseRedirect
 
-from .models import Ingredient, Tag, Recipe, ShoppingCart, Favorite
+from .models import (
+    Ingredient,
+    Tag,
+    Recipe,
+    ShoppingCart,
+    Favorite,
+    IngredientInRecipe,
+)
 
 admin.site.empty_value_display = 'Здесь пока ничего нет:('
+
+
+class IngredientInRecipeInline(admin.TabularInline):
+    """Связанная админ панель для ингредиентов в рецепте."""
+
+    model = IngredientInRecipe
+    extra = 1
 
 
 @admin.register(Ingredient)
@@ -47,18 +60,19 @@ class RecipeAdmin(admin.ModelAdmin):
     list_display = (
         'author',
         'name',
-        'favorite_additions'
+        'favorite_additions',
     )
     list_editable = (
         'name',
     )
     search_fields = (
-        'author',
+        'author__username',
         'name',
     )
     list_filter = (
         'tags',
     )
+    inlines = (IngredientInRecipeInline,)
 
     @admin.display(description='Добавлений в избранное')
     def favorite_additions(self, obj):
@@ -66,14 +80,18 @@ class RecipeAdmin(admin.ModelAdmin):
 
         return obj.favorites.all().count()
 
-    def save_model(self, request, obj, form, change):
-        """Проверка наличия ингредиентов перед сохранением рецепта."""
+    def save_related(self, request, form, formsets, change):
+        """Проверка перед сохранением рецепта."""
 
-        try:
-            obj.clean()
-            super().save_model(request, obj, form, change)
-        except ValidationError as e:
-            self.message_user(request, e.message, level=messages.ERROR)
+        super().save_related(request, form, formsets, change)
+        if not form.instance.ingredients_in_recipe.exists():
+            self.message_user(
+                request,
+                'Нельзя сохранить рецепт без ингредиентов.',
+                level=messages.ERROR
+            )
+            form.instance.delete()
+            return HttpResponseRedirect(request.path_info)
 
 
 @admin.register(ShoppingCart)
