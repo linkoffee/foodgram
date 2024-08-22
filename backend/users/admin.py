@@ -1,5 +1,4 @@
-from django.contrib import admin
-from django.forms import ValidationError
+from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from .models import User, Subscription
@@ -52,5 +51,10 @@ class SubscriptionAdmin(admin.ModelAdmin):
         """Проверка, что пользователь не может подписаться на себя."""
 
         if obj.user == obj.author:
-            raise ValidationError('Вы не можете подписаться на самого себя.')
-        super().save_model(request, obj, form, change)
+            self.message_user(
+                request,
+                'Вы не можете подписаться на самого себя.',
+                level=messages.ERROR
+            )
+        else:
+            super().save_model(request, obj, form, change)
