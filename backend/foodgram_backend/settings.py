@@ -60,16 +60,24 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'foodgram_backend.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql' if not os.getenv('USE_SQLITE') else 'django.db.backends.sqlite3',
-        'NAME': os.getenv('POSTGRES_DB', 'foodgram') if not os.getenv('USE_SQLITE') else 'db.sqlite3',
-        'USER': os.getenv('POSTGRES_USER', 'foodgram_user') if not os.getenv('USE_SQLITE') else '',
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD', '') if not os.getenv('USE_SQLITE') else '',
-        'HOST': os.getenv('DB_HOST', '') if not os.getenv('USE_SQLITE') else '',
-        'PORT': os.getenv('DB_PORT', 5432) if not os.getenv('USE_SQLITE') else '',
+if os.getenv('USE_SQLITE'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': 'db.sqlite3',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('POSTGRES_DB', 'foodgram'),
+            'USER': os.getenv('POSTGRES_USER', 'foodgram_user'),
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
+            'HOST': os.getenv('DB_HOST', ''),
+            'PORT': os.getenv('DB_PORT', '5432'),
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -121,8 +129,7 @@ REST_FRAMEWORK = {
 
 DJOSER = {
     'LOGIN_FIELD': 'email',
-    'SERIALIZERS': {
-        'user_create': 'api.serializers.UserCreateSerializer',
-        'user': 'api.serializers.UserSerializer'
+    'PERMISSIONS': {
+        'user_list': ['rest_framework.permissions.AllowAny']
     }
 }
