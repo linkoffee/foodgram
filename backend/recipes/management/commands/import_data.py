@@ -27,17 +27,18 @@ class Command(BaseCommand):
             try:
                 with open(file_path, 'r', encoding='utf-8') as file:
                     data = json.load(file)
-                    total_items = len(data)
-                    for index, item in enumerate(data, start=1):
-                        model.objects.get_or_create(**item)
-                        progress_percent = (index / total_items) * 100
-                        self.stdout.write(
-                            self.style.WARNING(
-                                f'Importing {model.__name__} objects... '
-                                f'{progress_percent:.2f}% '
-                                f'[{index}/{total_items}]'
-                            )
+                    objects_to_create = [model(**item) for item in data]
+
+                    model.objects.bulk_create(
+                        objects_to_create, ignore_conflicts=True
+                    )
+
+                    self.stdout.write(
+                        self.style.SUCCESS(
+                            'SUCCESSFULLY LOADED '
+                            f'`{model.__name__.upper()}` DATA'
                         )
+                    )
             except Exception as error:
                 self.stdout.write(
                     self.style.ERROR(
@@ -50,11 +51,5 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.ERROR(
                         f'FAILED TO LOAD `{model.__name__.upper()}` DATA'
-                    )
-                )
-            else:
-                self.stdout.write(
-                    self.style.SUCCESS(
-                        f'SUCCESSFULLY LOADED `{model.__name__.upper()}` DATA'
                     )
                 )
