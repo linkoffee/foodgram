@@ -296,7 +296,8 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
                 'tags': 'Теги должны быть уникальными.'
             })
 
-        # Не могу разобраться с проблемой: без этой проверки допускается создание рецепта без изображения.
+        # Не могу разобраться с проблемой:
+        # без этой проверки допускается создание рецепта без изображения.
         if not data.get('image') and self.context['request'].method == 'POST':
             raise serializers.ValidationError({
                 'image': 'Добавьте изображение.'
