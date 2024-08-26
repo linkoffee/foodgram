@@ -1,13 +1,13 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import FileExtensionValidator
+from django.forms import ValidationError
 
 from .constants import (
     MAX_EMAIL_LEN,
     MAX_USERNAME_LEN,
     MAX_FIRST_NAME_LEN,
     MAX_LAST_NAME_LEN,
-    MAX_PASSWORD_LEN,
     CHAR_LIMIT
 )
 from .validators import validate_username
@@ -15,6 +15,9 @@ from .validators import validate_username
 
 class User(AbstractUser):
     """Кастомная модель пользователя."""
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ('username', 'first_name', 'last_name')
 
     email = models.EmailField(
         unique=True,
@@ -34,10 +37,6 @@ class User(AbstractUser):
     last_name = models.CharField(
         max_length=MAX_LAST_NAME_LEN,
         verbose_name='Фамилия',
-    )
-    password = models.CharField(
-        max_length=MAX_PASSWORD_LEN,
-        verbose_name='Пароль',
     )
     avatar = models.ImageField(
         upload_to='users/images/',
@@ -74,8 +73,14 @@ class Subscription(models.Model):
         verbose_name='Автор',
     )
 
+    def clean(self):
+        if self.user == self.author:
+            raise ValidationError(
+                'Вы не можете подписаться на самого себя.'
+            )
+
     class Meta:
-        ordering = ('id',)
+        ordering = ('user',)
         constraints = (
             models.UniqueConstraint(
                 fields=('user', 'author'),
