@@ -1,6 +1,7 @@
-from django.contrib import admin, messages
-from django.http import HttpResponseRedirect
+from django.contrib import admin
+from django.utils.safestring import mark_safe
 
+from .constants import MIN_NUM, EXTRA
 from .models import (
     Ingredient,
     Tag,
@@ -17,7 +18,8 @@ class IngredientInRecipeInline(admin.TabularInline):
     """Связанная админ панель для ингредиентов в рецепте."""
 
     model = IngredientInRecipe
-    extra = 1
+    extra = EXTRA
+    min_num = MIN_NUM
 
 
 @admin.register(Ingredient)
@@ -60,7 +62,10 @@ class RecipeAdmin(admin.ModelAdmin):
     list_display = (
         'author',
         'name',
-        'favorite_additions',
+        'recipe_favorite_additions',
+        'recipe_ingredients',
+        'recipe_tags',
+        'recipe_image',
     )
     list_editable = (
         'name',
@@ -75,23 +80,30 @@ class RecipeAdmin(admin.ModelAdmin):
     inlines = (IngredientInRecipeInline,)
 
     @admin.display(description='Добавлений в избранное')
-    def favorite_additions(self, obj):
+    def recipe_favorite_additions(self, obj):
         """Считает кол-во добавлений рецепта в избранное."""
-
         return obj.favorites.all().count()
 
-    def save_related(self, request, form, formsets, change):
-        """Проверка перед сохранением рецепта."""
+    @admin.display(description='Ингредиенты')
+    def recipe_ingredients(self, obj):
+        """Возвращает ингредиенты через запятую."""
+        return ', '.join(
+            [ingredient.name for ingredient in obj.ingredients.all()]
+        )
 
-        super().save_related(request, form, formsets, change)
-        if not form.instance.ingredients_in_recipe.exists():
-            self.message_user(
-                request,
-                'Нельзя сохранить рецепт без ингредиентов.',
-                level=messages.ERROR
+    @admin.display(description='Теги')
+    def recipe_tags(self, obj):
+        """Возвращает теги через запятую."""
+        return ', '.join([tag.name for tag in obj.tags.all()])
+
+    @admin.display(description='Изображение')
+    def recipe_image(self, obj):
+        """Отображает изображение рецепта в админке."""
+        if obj.image:
+            return mark_safe(
+                f'<img src="{obj.image.url}" width="80" height="60">'
             )
-            form.instance.delete()
-            return HttpResponseRedirect(request.path_info)
+        return 'Изображение отсутствует...'
 
 
 @admin.register(ShoppingCart)
