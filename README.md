@@ -1,7 +1,7 @@
 ## Foodgram
 `Сервис для хранения, создания кулинарных рецептов`
 
-![Static Badge](https://img.shields.io/badge/1.0.0-orange?style=flat&logo=github&label=version)
+![Static Badge](https://img.shields.io/badge/1.0.1-orange?style=flat&logo=github&label=version)
 
 ## Как пользоваться сервисом?
 ### Аутентификация:
