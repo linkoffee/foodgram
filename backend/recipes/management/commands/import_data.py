@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand
 from recipes.models import Tag, Ingredient
 
 # Путь до директории с json-файлами
-JSON_PATH = os.path.join('..', 'data')
+JSON_PATH = os.path.join('data')
 
 # Словарь соответствий модели и json-файла
 MODEL_FILE_MATCHING = {
