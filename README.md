@@ -1,6 +1,7 @@
 ## Foodgram
 `Сервис для хранения, создания кулинарных рецептов`
 
+![Status Badge](https://github.com/linkoffee/kittygram_final/actions/workflows/main.yml/badge.svg)
 ![Static Badge](https://img.shields.io/badge/1.0.1-orange?style=flat&logo=github&label=version)
 
 ## Как пользоваться сервисом?
