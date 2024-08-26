@@ -1,6 +1,7 @@
-from django.contrib import admin, messages
+from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
+from recipes.models import Recipe
 from .models import User, Subscription
 
 admin.site.empty_value_display = 'Здесь пока ничего нет:('
@@ -15,6 +16,8 @@ class UserAdmin(BaseUserAdmin):
         'username',
         'first_name',
         'last_name',
+        'recipes_count',
+        'subscribers_count',
     )
     list_editable = (
         'first_name',
@@ -28,6 +31,18 @@ class UserAdmin(BaseUserAdmin):
         'email',
         'username',
     )
+
+    @admin.display(description='Рецепты')
+    def recipes_count(self, obj):
+        """Считает кол-во рецептов пользователя."""
+
+        return Recipe.objects.filter(author=obj).count()
+
+    @admin.display(description='Подписчики')
+    def subscribers_count(self, obj):
+        """Считает кол-во подписчиков пользователя."""
+
+        return Subscription.objects.filter(author=obj).count()
 
 
 @admin.register(Subscription)
@@ -46,15 +61,3 @@ class SubscriptionAdmin(admin.ModelAdmin):
         'user',
         'author',
     )
-
-    def save_model(self, request, obj, form, change):
-        """Проверка, что пользователь не может подписаться на себя."""
-
-        if obj.user == obj.author:
-            self.message_user(
-                request,
-                'Вы не можете подписаться на самого себя.',
-                level=messages.ERROR
-            )
-        else:
-            super().save_model(request, obj, form, change)
