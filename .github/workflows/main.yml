@@ -128,15 +128,6 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           source: 'docker-compose.production.yml'
           target: 'foodgram'
-      - name: Copy data files via ssh
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.HOST_IP }}
-          username: ${{ secrets.HOST_LOGIN }}
-          key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          source: 'backend/data/*'
-          target: 'foodgram/backend/data/'
       - name: Executing remote ssh commands to deploy
         uses: appleboy/ssh-action@master
         with:
