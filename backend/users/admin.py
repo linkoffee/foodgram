@@ -1,7 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from recipes.models import Recipe
 from .models import User, Subscription
 
 admin.site.empty_value_display = 'Здесь пока ничего нет:('
@@ -35,14 +34,12 @@ class UserAdmin(BaseUserAdmin):
     @admin.display(description='Рецепты')
     def recipes_count(self, obj):
         """Считает кол-во рецептов пользователя."""
-
-        return Recipe.objects.filter(author=obj).count()
+        return obj.recipes.count()
 
     @admin.display(description='Подписчики')
     def subscribers_count(self, obj):
         """Считает кол-во подписчиков пользователя."""
-
-        return Subscription.objects.filter(author=obj).count()
+        return obj.subscribed_to.count()
 
 
 @admin.register(Subscription)
