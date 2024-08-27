@@ -50,19 +50,15 @@ class SubscriptionReceiveSerializer(UserSerializer):
     """Сериализатор для получения подписок."""
 
     recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.IntegerField(read_only=True)
+    recipes_count = serializers.IntegerField(
+        read_only=True,
+        default=0
+    )
 
     class Meta(UserSerializer.Meta):
-        fields = (
-            'email',
-            'id',
-            'username',
-            'first_name',
-            'last_name',
-            'is_subscribed',
+        fields = UserSerializer.Meta.fields + (
             'recipes',
-            'recipes_count',
-            'avatar',
+            'recipes_count'
         )
 
     def get_recipes(self, obj):
@@ -73,8 +69,7 @@ class SubscriptionReceiveSerializer(UserSerializer):
             recipes_limit = request.query_params.get('recipes_limit')
             if recipes_limit:
                 try:
-                    limit = int(recipes_limit)
-                    recipes = recipes[:limit]
+                    recipes = recipes[:int(recipes_limit)]
                 except (ValueError, TypeError):
                     pass
 
@@ -146,7 +141,14 @@ class AddIngredientInRecipeSerializer(serializers.ModelSerializer):
     )
     amount = serializers.IntegerField(
         min_value=MIN_INGREDIENTS_AMOUNT,
-        max_value=MAX_INGREDIENTS_AMOUNT
+        max_value=MAX_INGREDIENTS_AMOUNT,
+        error_messages={
+            'min_value': 'Кол-во ингредиента не может быть меньше '
+            f'{MIN_INGREDIENTS_AMOUNT}.',
+            'max_value': 'Кол-во ингредиента не может быть больше '
+            f'{MAX_INGREDIENTS_AMOUNT}.',
+            'invalid': 'Укажите корректное кол-во ингредиента.',
+        }
     )
 
     class Meta:
@@ -296,13 +298,6 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
                 'tags': 'Теги должны быть уникальными.'
             })
 
-        # Не могу разобраться с проблемой:
-        # без этой проверки допускается создание рецепта без изображения.
-        if not data.get('image') and self.context['request'].method == 'POST':
-            raise serializers.ValidationError({
-                'image': 'Добавьте изображение.'
-            })
-
         return data
 
 
@@ -313,12 +308,6 @@ class ShoppingCartFavoriteSerializer(
 
     class Meta:
         fields = ('user', 'recipe')
-        validators = [
-            UniqueTogetherValidator(
-                queryset=None,
-                fields=('user', 'recipe')
-            )
-        ]
 
     def to_representation(self, instance):
         return RecipeShortSerializer(
@@ -326,16 +315,20 @@ class ShoppingCartFavoriteSerializer(
             context=self.context
         ).data
 
-    @classmethod
-    def get_model(cls):
-        return cls.Meta.model
+    def validate(self, attrs):
+        model = self.Meta.model
+        user = attrs['user']
+        recipe = attrs['recipe']
 
-    @classmethod
-    def get_error_msg(cls):
-        return (
-            f'{cls.get_model()._meta.verbose_name} с таким '
-            'пользователем и рецептом уже существует.'
-        )
+        if model.objects.filter(user=user, recipe=recipe).exists():
+            raise serializers.ValidationError({
+                'non_field_errors': [
+                    f'{model._meta.verbose_name} с таким '
+                    'пользователем и рецептом уже существует.'
+                ]
+            })
+
+        return attrs
 
 
 class ShoppingCartSerializer(ShoppingCartFavoriteSerializer):
@@ -343,12 +336,6 @@ class ShoppingCartSerializer(ShoppingCartFavoriteSerializer):
 
     class Meta(ShoppingCartFavoriteSerializer.Meta):
         model = ShoppingCart
-        validators = [
-            UniqueTogetherValidator(
-                queryset=ShoppingCart.objects.all(),
-                fields=('user', 'recipe')
-            )
-        ]
 
 
 class FavoriteSerializer(ShoppingCartFavoriteSerializer):
@@ -356,9 +343,3 @@ class FavoriteSerializer(ShoppingCartFavoriteSerializer):
 
     class Meta(ShoppingCartFavoriteSerializer.Meta):
         model = Favorite
-        validators = [
-            UniqueTogetherValidator(
-                queryset=Favorite.objects.all(),
-                fields=('user', 'recipe'),
-            )
-        ]
