@@ -34,12 +34,12 @@ class Ingredient(models.Model):
     )
 
     class Meta:
-        constraints = [
+        constraints = (
             models.UniqueConstraint(
                 fields=('name', 'measurement_unit'),
                 name='unique_name_measurement_unit',
-            )
-        ]
+            ),
+        )
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
 
@@ -177,12 +177,12 @@ class IngredientInRecipe(models.Model):
 
     class Meta:
         ordering = ('ingredient',)
-        constraints = [
+        constraints = (
             models.UniqueConstraint(
                 fields=('recipe', 'ingredient'),
                 name='unique_recipe_ingredient',
-            )
-        ]
+            ),
+        )
         verbose_name = 'Ингредиент рецепта'
         verbose_name_plural = 'Ингредиенты рецепта'
 
@@ -210,6 +210,12 @@ class UserRecipeModel(models.Model):
 
     class Meta:
         abstract = True
+        constraints = (
+            models.UniqueConstraint(
+                fields=('user', 'recipe'),
+                name='unique_user_recipe_%(class)s',
+            ),
+        )
         ordering = ('id', 'user__username')
 
     def __str__(self):
@@ -222,13 +228,7 @@ class UserRecipeModel(models.Model):
 class ShoppingCart(UserRecipeModel):
     """Модель списка покупок."""
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=('user', 'recipe'),
-                name='unique_user_recipe_shopping_cart',
-            )
-        ]
+    class Meta(UserRecipeModel.Meta):
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'
 
@@ -236,12 +236,6 @@ class ShoppingCart(UserRecipeModel):
 class Favorite(UserRecipeModel):
     """Модель избранного."""
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=('user', 'recipe'),
-                name='unique_user_recipe_favorite',
-            )
-        ]
+    class Meta(UserRecipeModel.Meta):
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранное'
