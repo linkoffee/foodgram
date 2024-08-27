@@ -1,3 +1,6 @@
+from io import BytesIO
+
+from django.http import FileResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum, Count
@@ -24,7 +27,7 @@ from recipes.models import (
     ShoppingCart,
     Favorite,
 )
-from recipes.download_shopping_cart import download_txt
+from .download_shopping_cart import download_txt
 from users.models import User, Subscription
 from .permissions import IsAdminOrAuthor
 from .pagination import LimitPagination
@@ -75,16 +78,15 @@ class UserViewSet(DjoserUserViewSet):
         """Обновляет аватар пользователя."""
         user = self.request.user
 
-        if request.data:
-            serializer = UserAvatarSerializer(
-                user,
-                data=request.data,
-                partial=True
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data)
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+        serializer = UserAvatarSerializer(
+            user,
+            data=request.data,
+            partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data)
 
     @update_avatar.mapping.delete
     def delete_avatar(self, request):
@@ -93,9 +95,7 @@ class UserViewSet(DjoserUserViewSet):
 
         if user.avatar:
             user.avatar.delete()
-            user.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response(status=status.HTTP_400_BAD_REQUEST)
 
     @action(
         detail=False,
@@ -106,7 +106,7 @@ class UserViewSet(DjoserUserViewSet):
         """Возвращает все подписки пользователя."""
         queryset = User.objects.filter(
             subscribed_to__user=request.user
-        ).annotate(recipes_count=Count('recipes')).order_by('id')
+        ).annotate(recipes_count=Count('recipes')).order_by('username')
 
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -150,13 +150,12 @@ class UserViewSet(DjoserUserViewSet):
             user=user, author=author
         ).delete()
 
-        if deleted_count:
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        else:
-            return Response(
-                {'errors': 'Подписка не найдена.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        return Response(
+            status=status.HTTP_204_NO_CONTENT
+            if deleted_count else status.HTTP_400_BAD_REQUEST,
+            data={'errors': 'Подписка не найдена.'}
+            if not deleted_count else None
+        )
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -252,7 +251,19 @@ class RecipeViewSet(viewsets.ModelViewSet):
             total_amount=Sum('amount')
         ).order_by('ingredient__name')
 
-        return download_txt(ingredients, user=request.user.username)
+        content = download_txt(ingredients, user=request.user.username)
+
+        file_content = BytesIO(content.encode('utf-8'))
+
+        response = FileResponse(
+            file_content,
+            content_type='text/plain; charset=utf-8'
+        )
+        response['Content-Disposition'] = (
+            f'attachment; filename="shopping_cart_{request.user.username}.txt"'
+        )
+
+        return response
 
     def add_recipe(self, request, pk, serializer_class):
         """Добавление рецепта в избранное или в список покупок."""
@@ -274,12 +285,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def delete_recipe(self, request, pk, model):
         """Удаление рецепта из избранного или списка покупок."""
         user = request.user
-
-        if not model.objects.filter(recipe_id=pk).exists():
-            return Response(
-                {'errors': 'Рецепт не существует.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
 
         deleted_count, _ = model.objects.filter(
             recipe_id=pk, user=user
