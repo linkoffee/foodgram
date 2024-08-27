@@ -80,30 +80,28 @@ class RecipeAdmin(admin.ModelAdmin):
     inlines = (IngredientInRecipeInline,)
 
     @admin.display(description='Добавлений в избранное')
-    def recipe_favorite_additions(self, obj):
+    def recipe_favorite_additions(self, recipe):
         """Считает кол-во добавлений рецепта в избранное."""
-        return obj.favorites.all().count()
+        return recipe.favorites.all().count()
 
     @admin.display(description='Ингредиенты')
     def recipe_ingredients(self, obj):
         """Возвращает ингредиенты через запятую."""
         return ', '.join(
-            [ingredient.name for ingredient in obj.ingredients.all()]
+            ingredient.name for ingredient in obj.ingredients.all()
         )
 
     @admin.display(description='Теги')
     def recipe_tags(self, obj):
         """Возвращает теги через запятую."""
-        return ', '.join([tag.name for tag in obj.tags.all()])
+        return ', '.join(tag.name for tag in obj.tags.all())
 
     @admin.display(description='Изображение')
     def recipe_image(self, obj):
         """Отображает изображение рецепта в админке."""
-        if obj.image:
-            return mark_safe(
-                f'<img src="{obj.image.url}" width="80" height="60">'
-            )
-        return 'Изображение отсутствует...'
+        return mark_safe(
+            f'<img src="{obj.image.url}" width="80" height="60">'
+        )
 
 
 @admin.register(ShoppingCart)
