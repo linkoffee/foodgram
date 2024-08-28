@@ -95,7 +95,7 @@ class UserViewSet(DjoserUserViewSet):
 
         if user.avatar:
             user.avatar.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=False,
@@ -154,7 +154,6 @@ class UserViewSet(DjoserUserViewSet):
             status=status.HTTP_204_NO_CONTENT
             if deleted_count else status.HTTP_400_BAD_REQUEST,
             data={'errors': 'Подписка не найдена.'}
-            if not deleted_count else None
         )
 
 
