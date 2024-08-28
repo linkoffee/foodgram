@@ -85,9 +85,9 @@ class Recipe(models.Model):
     )
     image = models.ImageField(
         upload_to='recipes/images/',
-        validators=[
-            FileExtensionValidator(allowed_extensions=('png', 'jpg', 'jpeg'))
-        ],
+        validators=(
+            FileExtensionValidator(allowed_extensions=('png', 'jpg', 'jpeg')),
+        ),
         verbose_name='Картинка',
     )
     text = models.TextField(
@@ -106,7 +106,7 @@ class Recipe(models.Model):
         verbose_name='Теги',
     )
     cooking_time = models.PositiveSmallIntegerField(
-        validators=[
+        validators=(
             MinValueValidator(
                 MIN_COOKING_TIME,
                 message=(
@@ -121,7 +121,7 @@ class Recipe(models.Model):
                     f'{MAX_COOKING_TIME} минут!'
                 )
             )
-        ],
+        ),
         db_index=True,
         verbose_name='Время приготовления в минутах',
     )
@@ -156,7 +156,7 @@ class IngredientInRecipe(models.Model):
         verbose_name='Рецепт',
     )
     amount = models.PositiveSmallIntegerField(
-        validators=[
+        validators=(
             MinValueValidator(
                 MIN_INGREDIENTS_AMOUNT,
                 message=(
@@ -171,7 +171,7 @@ class IngredientInRecipe(models.Model):
                     f'больше {MAX_INGREDIENTS_AMOUNT}!'
                 )
             )
-        ],
+        ),
         verbose_name='Кол-во',
     )
 
