@@ -85,22 +85,22 @@ class RecipeAdmin(admin.ModelAdmin):
         return recipe.favorites.all().count()
 
     @admin.display(description='Ингредиенты')
-    def recipe_ingredients(self, obj):
+    def recipe_ingredients(self, recipe):
         """Возвращает ингредиенты через запятую."""
         return ', '.join(
-            ingredient.name for ingredient in obj.ingredients.all()
+            ingredient.name for ingredient in recipe.ingredients.all()
         )
 
     @admin.display(description='Теги')
-    def recipe_tags(self, obj):
+    def recipe_tags(self, recipe):
         """Возвращает теги через запятую."""
-        return ', '.join(tag.name for tag in obj.tags.all())
+        return ', '.join(tag.name for tag in recipe.tags.all())
 
     @admin.display(description='Изображение')
-    def recipe_image(self, obj):
+    def recipe_image(self, recipe):
         """Отображает изображение рецепта в админке."""
         return mark_safe(
-            f'<img src="{obj.image.url}" width="80" height="60">'
+            f'<img src="{recipe.image.url}" width="80" height="60">'
         )
 
 
