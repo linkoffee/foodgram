@@ -27,6 +27,7 @@ class UserSerializer(DjoserUserSerializer):
             'is_subscribed',
             'avatar'
         )
+        ref_name = 'UniqueUserSerializer'
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
