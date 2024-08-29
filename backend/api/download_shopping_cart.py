@@ -1,9 +1,5 @@
 from datetime import date
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
 
 def download_txt(data, user):
     """Функция для загрузки списка покупок в txt формате."""

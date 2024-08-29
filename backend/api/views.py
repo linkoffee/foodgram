@@ -242,15 +242,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def download_shopping_cart(self, request):
         """Загрузка списка покупок файлом."""
+        user = request.user
         ingredients = IngredientInRecipe.objects.filter(
-            recipe__shoppingcarts__user=request.user
+            recipe__shoppingcarts__user=user
         ).values(
             'ingredient__name', 'ingredient__measurement_unit'
         ).annotate(
             total_amount=Sum('amount')
         ).order_by('ingredient__name')
 
-        content = download_txt(ingredients, user=request.user.username)
+        content = download_txt(ingredients, user=user.username)
 
         file_content = BytesIO(content.encode('utf-8'))
 
@@ -259,7 +260,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             content_type='text/plain; charset=utf-8'
         )
         response['Content-Disposition'] = (
-            f'attachment; filename="shopping_cart_{request.user.username}.txt"'
+            f'attachment; filename="shopping_cart_{user.username}.txt"'
         )
 
         return response
