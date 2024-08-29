@@ -21,7 +21,6 @@ services:
     image: linkoffee/foodgram_backend
     env_file: .env
     volumes:
-      - ./backend/data:/app/data/
       - static:/static/
       - media:/app/media/
       - docs:/app/docs/
