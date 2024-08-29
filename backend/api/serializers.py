@@ -33,7 +33,7 @@ class UserSerializer(DjoserUserSerializer):
         request = self.context.get('request')
         return (
             request and request.user.is_authenticated
-            and request.user.subscribed_to.filter(author=obj).exists()
+            and request.user.subscriber.filter(author=obj).exists()
         )
 
 
