@@ -30,11 +30,10 @@ class UserSerializer(DjoserUserSerializer):
         ref_name = 'UniqueUserSerializer'
 
     def get_is_subscribed(self, obj):
-        request = self.context.get('request')
-        return (
-            request and request.user.is_authenticated
-            and request.user.subscriber.filter(author=obj).exists()
-        )
+        user = self.context.get('request').user
+        if user and user.is_authenticated:
+            return user.subscriber.filter(author=obj).exists()
+        return False
 
 
 class UserAvatarSerializer(UserSerializer):
