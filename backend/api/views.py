@@ -50,6 +50,7 @@ class UserViewSet(DjoserUserViewSet):
     """Вьюсет для юзера."""
 
     queryset = User.objects.all()
+    serializer_class = UserSerializer
     permission_classes = (AllowAny,)
     pagination_class = LimitPagination
     filter_backends = (filters.SearchFilter,)
