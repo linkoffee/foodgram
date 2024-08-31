@@ -7,15 +7,10 @@
 </div>
 
 ![Status Badge](https://github.com/linkoffee/kittygram_final/actions/workflows/main.yml/badge.svg)
-![Static Badge](https://img.shields.io/badge/1.0.2-orange?style=flat&logo=github&label=version)
+![Static Badge](https://img.shields.io/badge/1.0.3-orange?style=flat&logo=github&label=version)
 
-Проект доступен для ознакомления ---> [`Здесь`](https://foodgram-practicum.duckdns.org/)
-### Суперпользователь для проверки:
-```s
-Email: review@admin.ru
-Username: review
-Password: review1admin
-```
+Проект доступен для ознакомления ---> [`Здесь`](https://foodgram-practicum.duckdns.org/)\
+Документация API ---> [`Здесь`](https://foodgram-practicum.duckdns.org/api/docs/)
 
 ## Как пользоваться сервисом?
 ### Аутентификация:
